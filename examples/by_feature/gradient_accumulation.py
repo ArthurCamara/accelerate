@@ -165,6 +165,10 @@ def training_function(config, args):
                 output = model(**batch)
                 loss = output.loss
                 accelerator.backward(loss)
+                if accelerator.sync_gradients:
+                    # If we are using gradient clipping (or value clipping), this should only happen when the gradients will be synced. 
+                    # Otherwhise, when using AMP, Accelerate will try to unscale the gradients every step, causing an error.
+                    accelerator.clip_grad_norm_(model.parameters(), 1.0)
                 optimizer.step()
                 lr_scheduler.step()
                 optimizer.zero_grad()
